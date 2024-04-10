@@ -2,12 +2,22 @@
 /* eslint-disable no-console */
 import Tree from './tree.mjs';
 
-const unsortedArray = [
-  1, 7, 4, 6, 18, 19, 10, 11, 12, 13, 145, 15, 16, 17, 18, 22, 23, 8, 9, 4, 3,
-  5, 7, 9, 67, 6345, 324,
-];
+function generateRandomsInArray(maxLimit = 100) {
+  const randomsArray = [];
+  while (randomsArray.length !== 100) {
+    const random = Math.floor(Math.random() * (maxLimit + 1));
+    randomsArray.push(random);
+  }
+  return randomsArray;
+}
 
-const newTree = new Tree(unsortedArray);
+function DriverScript() {
+  const randomArray = generateRandomsInArray(100);
+  randomArray.push(105, 110, 111, 112, 113, 114, 115, 116);
+  const newTree = new Tree(randomArray);
+  console.log(newTree.prettyPrint(newTree.root));
+  const isBalanced = newTree.isBalanced();
+  console.log(isBalanced);
+}
 
-console.log(newTree.prettyPrint(newTree.root));
-console.log(newTree.isBalanced());
+DriverScript();

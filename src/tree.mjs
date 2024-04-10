@@ -5,9 +5,12 @@ import Node from './node.mjs';
 
 export default class Tree {
   constructor(array) {
-    this.cleanedArray = this.cleanArray(array);
-    this.root = this.buildTree(array, 0, array.length - 1);
-    console.log(this.root);
+    this.cleanedArray = this.mergeSort(this.cleanArray(array));
+    this.root = this.buildTree(
+      this.cleanedArray,
+      0,
+      this.cleanedArray.length - 1
+    );
   }
 
   buildTree(array, start, end) {
@@ -40,13 +43,12 @@ export default class Tree {
           currentNode = currentNode.left;
         }
       } else {
-        // La valeur existe déjà dans l'arbre, vous pouvez choisir de gérer cela comme vous le souhaitez
         break;
       }
     }
   }
 
-  delete(value) {
+  deleteItem(value) {
     let previousNode = null;
     let currentNode = this.root;
     while (currentNode !== null && value !== currentNode.data) {
@@ -60,7 +62,6 @@ export default class Tree {
     if (currentNode === null) {
       return;
     }
-
     if (currentNode.left !== null && currentNode.right !== null) {
       let successor = currentNode.right;
       let successorParent = currentNode;
@@ -87,26 +88,21 @@ export default class Tree {
     }
   }
 
-  // eslint-disable-next-line consistent-return
   find(value) {
     let currentNode = this.root;
-
-    while (currentNode !== null && value !== currentNode.data) {
+    while (currentNode !== null) {
+      if (value === currentNode.data) {
+        return currentNode;
+      }
       if (value > currentNode.data) {
         currentNode = currentNode.right;
-      } else {
-        currentNode = currentNode.left;
-      }
+      } else if (value < currentNode.data) currentNode = currentNode.left;
     }
-    if (currentNode === null) {
-      return 'No item found with this value.';
-    }
-    return currentNode;
+    return null;
   }
 
   levelOrder(callback = null) {
     if (!this.root) return [];
-
     const result = [];
     const queue = [this.root];
 
@@ -121,22 +117,18 @@ export default class Tree {
         } else {
           currentLevelValues.push(node.data);
         }
-
         if (node.left) queue.push(node.left);
         if (node.right) queue.push(node.right);
       }
-
       if (!callback) {
         result.push(currentLevelValues);
       }
     }
-
     return callback ? undefined : result;
   }
 
   inOrder(callback = null) {
     if (!this.root) return [];
-
     const result = [];
     const currentNode = this.root;
 
@@ -162,27 +154,26 @@ export default class Tree {
     const result = [];
     const currentNode = this.root;
 
-    function goDeep(node) {
+    function goThrough(node) {
       if (callback) {
         callback(node);
       } else {
         result.push(node.data);
       }
       if (node.left) {
-        goDeep(node.left);
+        goThrough(node.left);
       }
       if (node.right) {
-        goDeep(node.right);
+        goThrough(node.right);
       }
     }
-    goDeep(currentNode);
+    goThrough(currentNode);
     return callback ? undefined : result;
   }
 
   postOrder(callback = null) {
     if (!this.root) return [];
     const result = [];
-    const currentNode = this.root;
 
     function goThrough(node) {
       if (node.left) {
@@ -197,15 +188,20 @@ export default class Tree {
         result.push(node.data);
       }
     }
-    goThrough(currentNode);
+
+    goThrough(this.root);
+
     return callback ? undefined : result;
   }
 
   height(node) {
     let currentNode = this.find(node);
+    if (!currentNode) {
+      return 'Node is null.';
+    }
     let counterLeft = 0;
     let counterRight = 0;
-    if (!currentNode) return 'No node.';
+
     while (currentNode.left !== null && currentNode.right !== null) {
       if (currentNode.left !== null) {
         currentNode = currentNode.left;
@@ -221,18 +217,24 @@ export default class Tree {
 
   depth(node) {
     const nodeToFind = this.find(node);
-    if (!nodeToFind) return 'Error. This node is null.';
+    if (!nodeToFind) {
+      return 'Node is null';
+    }
     let currentNode = this.root;
     let counter = 0;
-    while (currentNode !== nodeToFind) {
+    while (currentNode !== null) {
       if (nodeToFind.data > currentNode.data) {
+        counter += 1;
         currentNode = currentNode.right;
       } else {
+        counter += 1;
         currentNode = currentNode.left;
       }
-      counter += 1;
+      if (nodeToFind.data === currentNode.data) {
+        return counter;
+      }
     }
-    return counter;
+    return -1;
   }
 
   isBalanced() {
@@ -246,18 +248,69 @@ export default class Tree {
       return Math.max(goToRight(node.left), goToRight(node.right)) + 1;
     }
 
-    const leftDepth = goToLeft(this.root);
-    const rightDepth = goToRight(this.root);
+    function isSubtreeBalanced(node) {
+      if (!node) return true;
 
-    if (Math.abs(leftDepth - rightDepth) <= 1) {
+      const leftDepth = goToLeft(node.left);
+      const rightDepth = goToRight(node.right);
+
+      if (
+        Math.abs(leftDepth - rightDepth) <= 1 &&
+        isSubtreeBalanced(node.left) &&
+        isSubtreeBalanced(node.right)
+      ) {
+        return true;
+      }
+
+      return false;
+    }
+
+    if (isSubtreeBalanced(this.root)) {
       return 'Tree is balanced.';
     }
     return 'Tree is not balanced.';
   }
 
-  rebalance() {}
+  rebalance() {
+    const newArray = this.inOrder(this.root);
+    this.root = this.buildTree(newArray, 0, newArray.length - 1);
+  }
 
-  // ------------------------------------ Utility functions to clean, merge Array before building the tree. ---------------------------------------- //
+  // ------------------ Utility functions for building Tree ---------------------------------------- //
+
+  cleanArray(array) {
+    const cleanedArray = this.removeDuplicates(array);
+    return cleanedArray;
+  }
+
+  removeDuplicates(array) {
+    const uniqueSet = new Set(array);
+    const backToArray = [...uniqueSet];
+    return backToArray;
+  }
+
+  mergeSort(array) {
+    const mid = Math.floor(array.length / 2);
+    if (array.length < 2) {
+      return array;
+    }
+    const leftPart = array.slice(0, mid);
+    const rightPart = array.slice(mid);
+
+    return this.merge(this.mergeSort(leftPart), this.mergeSort(rightPart));
+  }
+
+  merge(leftPart, rightPart) {
+    const arr = [];
+    while (leftPart.length && rightPart.length) {
+      if (leftPart[0] < rightPart[0]) {
+        arr.push(leftPart.shift());
+      } else {
+        arr.push(rightPart.shift());
+      }
+    }
+    return [...arr, ...leftPart, ...rightPart];
+  }
 
   prettyPrint(node, prefix = '', isLeft = true) {
     if (node === null) {
@@ -270,65 +323,9 @@ export default class Tree {
         false
       );
     }
-    // eslint-disable-next-line no-console
     console.log(`${prefix}${isLeft ? '└── ' : '┌── '}${node.data}`);
     if (node.left !== null) {
       this.prettyPrint(node.left, `${prefix}${isLeft ? '    ' : '│   '}`, true);
     }
-  }
-
-  cleanArray(array) {
-    const sortedArray = this.mergeSort(array);
-    const uniqueValues = new Set();
-    const resultArray = [];
-
-    sortedArray.forEach((item) => {
-      if (!uniqueValues.has(item)) {
-        uniqueValues.add(item);
-        resultArray.push(item);
-      }
-    });
-
-    return resultArray;
-  }
-
-  removeDuplicate(array) {
-    const uniqueValues = new Set();
-    const resultArray = [];
-
-    array.forEach((item) => {
-      if (!uniqueValues.has(item)) {
-        uniqueValues.add(item);
-        resultArray.push(item);
-      }
-    });
-
-    return resultArray;
-  }
-
-  mergeSort(array) {
-    // Créer une copie de l'array initial
-    const woArray = array.slice();
-    const mid = Math.floor(woArray.length / 2);
-
-    if (woArray.length < 2) {
-      return woArray;
-    }
-    const leftPart = woArray.slice(0, mid);
-    const rightPart = woArray.slice(mid);
-
-    return this.merge(this.mergeSort(leftPart), this.mergeSort(rightPart));
-  }
-
-  merge(leftPart, rightPart) {
-    const array = [];
-    while (leftPart.length && rightPart.length) {
-      if (leftPart[0] < rightPart[0]) {
-        array.push(leftPart.shift());
-      } else {
-        array.push(rightPart.shift());
-      }
-    }
-    return [...array, ...leftPart, ...rightPart];
   }
 }
